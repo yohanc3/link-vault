@@ -1,1 +1,4 @@
-nextcord
+discord.py
+chromadb
+pysqlite3-binary
+uuid
