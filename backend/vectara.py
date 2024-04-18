@@ -3,6 +3,9 @@ import json
 import re
 import tempfile
 import uuid
+import os
+from dotenv import load_dotenv
+
 class Vectara:
 
     def __init__(self, api_key, customer_id, corpus_id) -> None:
@@ -10,16 +13,19 @@ class Vectara:
         self.customer_id = customer_id
         self.corpus_id = corpus_id
     
-    def file_upload(self, file=None, file_text = "", link = ""):
+    def file_upload(self, file_text = "", link = "", user_id = "", topic = ""):
         session = requests.Session()
-        if file is None:
-            with tempfile.NamedTemporaryFile(delete=False, mode='w+') as tmp_file:
-                tmp_file.write(file_text)
-                tmp_file_name = tmp_file.name
-                file = tmp_file_name
+        with tempfile.NamedTemporaryFile(delete=False, mode='w+') as tmp_file:
+            tmp_file.write(file_text)
+            tmp_file_name = tmp_file.name
+            file = tmp_file_name
         files={
             "file": (str(uuid.uuid4()), open(file, "rb"), "application/octet-stream"),
-            "doc_metadata": json.dumps({"link": link})
+            "doc_metadata": json.dumps({
+                "link": link,
+                "user_id": user_id,
+                "topic": topic
+            })
         }
         post_headers = {
         "x-api-key": self.api_key
@@ -114,17 +120,29 @@ class Vectara:
 
 
 if __name__ == "__main__":
-    
-    # API key, customer ID, and corpus ID
-    vectara = Vectara("zut_yym2wk3zzNjsw3-xyZV04OV-ibmTlynUbrJQkw", 3408508610, 3)
+    load_dotenv()
+    vectara_key = os.getenv("VECTARA_KEY")
+    customer_id = os.getenv("CUSTOMER_ID")
+    corpus_id = os.getenv("CORPUS_ID")
+
+    # vectara api key, customer ID, and corpus ID
+    vectara = Vectara(vectara_key, customer_id, int(corpus_id))
     
     # Either feed it file=filename or file_text="text" 
-    print(vectara.file_upload(file_text="Lions like to eat elephants and deer", link="https://linkedin.com"))
+    print(vectara.file_upload(file_text='''Networking helps me in the following ways.
+                            - people are more likely to reach out to me for help since they already know me and feel comfortable doing it
+                            - I feel more comfortable reaching out to people for help because I’ve spoken to them already
+                            - it helps me recognize patterns of problems teams/people are dealing with, and I can come up with common solutions that have impact across teams
+                            - in general it opens up my mind to new perspectives
+                            How I keep on top of it:
+                            - I have a target for myself that I will reach out to two people every week to just say hello and introduce myself if we’re meeting for the first tins
+                            How I find the people to network with
+                            - I always make note of people names when they’re mentioned during conversations. The more conversations I have, the more names I add to my list!
+                              ''', 
+                              link="https://linkedin.com"))
     
     # convo = vectara.ask_question(input("Enter your message: "))
     # while convo is not None:
     #     print(convo["answer"])
     #     print("Documents and Links:", convo["documents"])
     #     convo = vectara.ask_question(input("Enter your question: "), convo["conversation_id"])
-    
-    
