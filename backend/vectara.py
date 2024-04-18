@@ -1,6 +1,8 @@
 import requests
 import json
 import re
+import tempfile
+import uuid
 class Vectara:
 
     def __init__(self, api_key, customer_id, corpus_id) -> None:
@@ -8,10 +10,15 @@ class Vectara:
         self.customer_id = customer_id
         self.corpus_id = corpus_id
     
-    def file_upload(self, file, link = ""):
+    def file_upload(self, file=None, file_text = "", link = ""):
         session = requests.Session()
+        if file is None:
+            with tempfile.NamedTemporaryFile(delete=False, mode='w+') as tmp_file:
+                tmp_file.write(file_text)
+                tmp_file_name = tmp_file.name
+                file = tmp_file_name
         files={
-            "file": (file, open(file, "rb"), "application/octet-stream"),
+            "file": (str(uuid.uuid4()), open(file, "rb"), "application/octet-stream"),
             "doc_metadata": json.dumps({"link": link})
         }
         post_headers = {
@@ -111,12 +118,13 @@ if __name__ == "__main__":
     # API key, customer ID, and corpus ID
     vectara = Vectara("zut_yym2wk3zzNjsw3-xyZV04OV-ibmTlynUbrJQkw", 3408508610, 3)
     
-    # print(vectara.file_upload("cities.txt", "https://facebook.com"))
+    # Either feed it file=filename or file_text="text" 
+    print(vectara.file_upload(file_text="Lions like to eat elephants and deer", link="https://linkedin.com"))
     
-    convo = vectara.ask_question(input("Enter your message: "))
-    while convo is not None:
-        print(convo["answer"])
-        print("Documents and Links:", convo["documents"])
-        convo = vectara.ask_question(input("Enter your question: "), convo["conversation_id"])
+    # convo = vectara.ask_question(input("Enter your message: "))
+    # while convo is not None:
+    #     print(convo["answer"])
+    #     print("Documents and Links:", convo["documents"])
+    #     convo = vectara.ask_question(input("Enter your question: "), convo["conversation_id"])
     
     
