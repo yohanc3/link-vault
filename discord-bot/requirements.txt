@@ -1,6 +1,6 @@
 discord.py
 chromadb
-pysqlite3-binary
+pysqlite3
 uuid
 nextcord
 python-dotenv
