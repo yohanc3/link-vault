@@ -8,6 +8,7 @@ import requests
 import chromadb
 from datetime import datetime
 
+
 import discord
 from discord.ext import commands
 
@@ -77,3 +78,4 @@ async def process_link(ctx, link=None):
 
 
 bot.run(os.environ['DISCORD_CLIENT_TOKEN'])
+
