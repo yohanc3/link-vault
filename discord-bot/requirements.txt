@@ -1,5 +1,4 @@
 discord.py
-chromadb
 pysqlite3
 uuid
 nextcord

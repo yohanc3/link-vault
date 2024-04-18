@@ -3,7 +3,6 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import os
-import uuid
 import requests
 import chromadb
 from datetime import datetime
@@ -17,9 +16,6 @@ token = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
-
-chroma_client = chromadb.Client()
-collection = chroma_client.create_collection(name="bookmarks")
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -53,31 +49,16 @@ async def process_link(ctx, link=None):
   try:
     response = requests.get(full_link)
     response.raise_for_status()  # Raise an exception for non-2xx status codes
+    data = response.text
   except requests.exceptions.RequestException as e:
     await ctx.send(f"Error fetching content: {e}")
     return
-
-  data = response.text
-  collection.add(
-    documents=[data],
-    metadatas=[{"source": link, "saved_by": user_id, "timestamp": f"{datetime.now()}"}],
-    ids=[f"{uuid.uuid4()}"]
-)
   
+  # save data to vectara with these properties: the chunk is the content. metadata is topic, user_id, and link to post
 
-  results = collection.query(
-        query_texts=["Title"],
-        n_results=2
-    )
-  with open("query_results.txt", "a+") as f:
-    # Write the results to the file
-    for result in results:
-        f.write(str(result) + "\n")  # Convert each result to a string and add a newline
+  print(f"content: {data}")
 
-    print("Results written to query_results.txt")
-
-  await ctx.send(f"🎉 Saved into database!")
-
+  # await ctx.send(f"🎉 Saved into database!")
 
 
 bot.run(os.environ['DISCORD_CLIENT_TOKEN'])
