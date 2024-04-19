@@ -91,7 +91,7 @@ async def process_link(ctx, chat):
 
 
   
-  load_dotenv()
+
   vectara_key = os.getenv("VECTARA_KEY")
   customer_id = os.getenv("CUSTOMER_ID")
   corpus_id = os.getenv("CORPUS_ID")
@@ -126,5 +126,5 @@ async def process_link(ctx):
   for doc in prev_message[user.id]["documents"]:
     await ctx.send(doc["link"])
 
-
-bot.run("MTIyOTYyNzEzMzcwMjE4MDg2Ng.G7Eu-v.GZIOTBvUQIbavGnlOIxr3dPKqFXwVkDmtntA3Q")
+load_dotenv()
+bot.run(os.getenv("TOKEN"))
