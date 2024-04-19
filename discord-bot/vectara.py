@@ -105,7 +105,7 @@ class Vectara:
         documents = []
         for doc in data['responseSet'][0]['document']:
             doc_id = doc['id']
-            link = next(item for item in doc['metadata'] if item['name'] == 'link')['value']
+            link = next((item for item in doc['metadata'] if item['name'] == 'link'), {'value': 'default_link'})['value']
             documents.append({'id': doc_id, 'link': link})
         
         # Find all references in the summary text and print corresponding response texts
