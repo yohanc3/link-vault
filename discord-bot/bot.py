@@ -12,9 +12,6 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
-load_dotenv()
-token = os.getenv("TOKEN")
-
 intents = discord.Intents.default()
 intents.message_content = True
 prev_message = {}
@@ -88,10 +85,6 @@ async def process_link(ctx, chat):
     await ctx.send("Please provide a complete sentence for the chat message.")
     return
 
-
-
-  
-
   vectara_key = os.getenv("VECTARA_KEY")
   customer_id = os.getenv("CUSTOMER_ID")
   corpus_id = os.getenv("CORPUS_ID")
@@ -127,4 +120,6 @@ async def process_link(ctx):
     await ctx.send(doc["link"])
 
 load_dotenv()
-bot.run(os.getenv("TOKEN"))
+discord_token = os.getenv("TOKEN")
+
+bot.run(discord_token)
