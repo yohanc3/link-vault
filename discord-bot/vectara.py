@@ -15,7 +15,7 @@ class Vectara:
     
     def file_upload(self, file_text = "", link = "", user_id = "", topic = ""):
         session = requests.Session()
-        with tempfile.NamedTemporaryFile(delete=False, mode='w+') as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, mode='w+', encoding='utf-8') as tmp_file:
             tmp_file.write(file_text)
             tmp_file_name = tmp_file.name
             file = tmp_file_name
