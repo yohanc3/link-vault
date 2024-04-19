@@ -1,10 +1,11 @@
-__import__('pysqlite3')
+# __import__('pysqlite3')
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import os
 import requests
-import chromadb
+from vectara import Vectara
+# import chromadb
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -16,6 +17,7 @@ token = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
+prev_message = {}
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -57,8 +59,72 @@ async def process_link(ctx, link=None):
   # save data to vectara with these properties: the chunk is the content. metadata is topic, user_id, and link to post
 
   print(f"content: {data}")
+  load_dotenv()
+  vectara_key = os.getenv("VECTARA_KEY")
+  customer_id = os.getenv("CUSTOMER_ID")
+  corpus_id = os.getenv("CORPUS_ID")
+  vec = Vectara(vectara_key, customer_id, int(corpus_id))
+  returns = vec.file_upload(file_text=data, link=link)
+  
+  if returns is None:
+    await ctx.send("Error processing your content :(")
+  else:
+    await ctx.send("Content processed successfully!")
 
-  # await ctx.send(f"🎉 Saved into database!")
+@bot.command(name="chat")
+async def process_link(ctx, chat):
+  """
+  This command sends a chat message from the user to the Vectara API.
+
+  Args:
+      ctx: The context of the command invocation.
+      chat: The chat message provided by the user.
+  """
+
+  user = ctx.author
+  user_id = user.id
+
+  if not chat:
+    await ctx.send("Please provide a complete sentence for the chat message.")
+    return
 
 
-bot.run(os.environ['DISCORD_CLIENT_TOKEN'])
+
+  
+  load_dotenv()
+  vectara_key = os.getenv("VECTARA_KEY")
+  customer_id = os.getenv("CUSTOMER_ID")
+  corpus_id = os.getenv("CORPUS_ID")
+  vec = Vectara(vectara_key, customer_id, int(corpus_id))
+  returns = vec.ask_question(chat)
+  
+  if returns is None:
+    await ctx.send("Error processing your chat message :(")
+  else:
+    global prev_message
+    prev_message[user_id] = returns
+    await ctx.send(returns["answer"])
+    
+@bot.command(name="sources")
+async def process_link(ctx):
+  """
+  This command prints the sources (links) for the previous response.
+
+  Args:
+      ctx: The context of the command invocation.
+      chat: The chat message provided by the user.
+  """
+
+  user = ctx.author
+  user_id = user.id
+
+  if prev_message[user_id] is None:
+    await ctx.send("There is no previous message to show sources for.")
+    return
+
+
+  for doc in prev_message[user.id]["documents"]:
+    await ctx.send(doc["link"])
+
+
+bot.run("MTIyOTYyNzEzMzcwMjE4MDg2Ng.G7Eu-v.GZIOTBvUQIbavGnlOIxr3dPKqFXwVkDmtntA3Q")

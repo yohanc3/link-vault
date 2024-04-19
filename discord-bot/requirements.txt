@@ -1,5 +1,4 @@
 discord.py
-pysqlite3
 uuid
 nextcord
 python-dotenv

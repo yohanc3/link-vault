@@ -47,8 +47,9 @@ class Vectara:
             {
             "query": question,
             "start": 0,
-            "numResults": 5,
+            "numResults": 10,
             "contextConfig": {
+                "chars"
                 "sentences_before": 3,
                 "sentences_after": 3,
                 "start_tag": "<b>",
@@ -56,12 +57,17 @@ class Vectara:
             },
             "corpusKey": [
                 {
-                "corpus_id": self.corpus_id
+                "corpus_id": self.corpus_id,
+                "semantics": 0,
+                "lexical_interpolation_config": {
+                    "lambda": 0.025,
+                },
+                "dim": []
                 }
             ],
             "summary": [
                 {
-                "max_summarized_results": 1,
+                "max_summarized_results": 5,
                 "response_lang": "en",
                 "chat":  {
                 "store": True,
