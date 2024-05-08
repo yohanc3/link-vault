@@ -56,7 +56,7 @@ async def process_link(ctx, link=None):
   # save data to vectara with these properties: the chunk is the content. metadata is topic, user_id, and link to post
 
   print(f"content: {data}")
-  load_dotenv()
+  load_dotenv(override=True)
   vectara_key = os.getenv("VECTARA_KEY")
   customer_id = os.getenv("CUSTOMER_ID")
   corpus_id = os.getenv("CORPUS_ID")
