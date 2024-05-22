@@ -1,7 +1,0 @@
-ids
-distances
-metadatas
-embeddings
-documents
-uris
-data

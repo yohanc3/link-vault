@@ -1,5 +1,0 @@
-discord.py
-uuid
-nextcord
-python-dotenv
-requests
