@@ -99,7 +99,7 @@ func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCre
 			panic(err)
 		}
 
-		var linksArr []string = storage.GetLinks(username, tags)
+		linksArr := storage.GetLinks(username, tags)
 
 		if len(linksArr) == 0 {
 			discord.ChannelMessageSend(message.ChannelID, "You don't have any urls saved with this tag:(")
@@ -127,10 +127,15 @@ func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCre
 		panic(err)
 	}
 
-	err = storage.InsertLinkAndTags(username, url, tags)
+	mergedTags, error := storage.InsertLinkAndTags(username, url, tags)
 
-	if err != nil {
-		discord.ChannelMessageSend(message.ChannelID, err.Error())
+	if error != nil {
+		discord.ChannelMessageSend(message.ChannelID, error.Error())
+		return
+	}
+
+	if mergedTags != nil {
+		discord.ChannelMessageSend(message.ChannelID, "Your link has been successfully updated! The new tags for this link are: " + util.FormatArrayToString(mergedTags))
 		return
 	}
 
@@ -154,8 +159,6 @@ func handleGetTagsCommand(discord *discordgo.Session, message *discordgo.Message
 	formattedTags := util.FormatArrayToString(tags)
 
 	discord.ChannelMessageSend(message.ChannelID, "Your previously used tags: \n " + "**```\n" + formattedTags + "\n```**")
-
-
 }
 
 func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCreate){

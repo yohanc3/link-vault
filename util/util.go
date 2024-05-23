@@ -108,3 +108,29 @@ func FormatArrayToString(arr []string) string {
 
 	return builder.String()
 }
+
+// Function to merge two slices and remove duplicates
+func MergeSlices(slice1, slice2 []string) []string {
+	// Create a map to track unique elements
+	uniqueElements := make(map[string]bool)
+	// Create a slice to hold the result
+	result := []string{}
+
+	// Add elements from the first slice to the map and result slice
+	for _, v := range slice1 {
+			if !uniqueElements[v] {
+					uniqueElements[v] = true
+					result = append(result, v)
+			}
+	}
+
+	// Add elements from the second slice to the map and result slice
+	for _, v := range slice2 {
+			if !uniqueElements[v] {
+					uniqueElements[v] = true
+					result = append(result, v)
+			}
+	}
+
+	return result
+}

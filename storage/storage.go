@@ -2,7 +2,8 @@ package storage
 
 type Storage interface {
 	GetLinks(string, []string) []string
-	InsertLinkAndTags(string, string, []string) error 
+	GetLinksByUrl(string, string) (string, []string, error)
+	InsertLinkAndTags(string, string, []string) ([]string, error)
 	GetUserTags(string) ([]string, error)
 }
 
