@@ -101,6 +101,11 @@ func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCre
 
 		var linksArr []string = storage.GetLinks(username, tags)
 
+		if len(linksArr) == 0 {
+			discord.ChannelMessageSend(message.ChannelID, "You don't have any urls saved with this tag:(")
+			return
+		}
+
 		var stringifiedLinks string = strings.Join(linksArr, " ")
 
 		discord.ChannelMessageSend(message.ChannelID, stringifiedLinks)

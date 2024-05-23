@@ -68,10 +68,6 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) []string {
 	if err != nil {		
     	panic(err)
   	}
-
-	if len(results) == 0 {
-		return append(results, "No links found")
-	}
 	
 	fmt.Println("\nlinks to send: ", results)
 	return results
