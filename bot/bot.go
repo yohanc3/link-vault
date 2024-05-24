@@ -5,12 +5,12 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	. "wisdom-hoard/config"
+	. "github.com/yohanc3/link-vault/config"
 
-	. "wisdom-hoard/error"
-	. "wisdom-hoard/logger"
-	"wisdom-hoard/storage"
-	"wisdom-hoard/util"
+	. "github.com/yohanc3/link-vault/error"
+	. "github.com/yohanc3/link-vault/logger"
+	"github.com/yohanc3/link-vault/storage"
+	"github.com/yohanc3/link-vault/util"
 
 	"github.com/bwmarrin/discordgo"
 )

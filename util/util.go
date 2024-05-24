@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	. "wisdom-hoard/config"
-	. "wisdom-hoard/error"
+	. "github.com/yohanc3/link-vault/config"
+	. "github.com/yohanc3/link-vault/error"
 )
 
 // parseFindCommand

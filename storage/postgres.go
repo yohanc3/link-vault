@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	. "wisdom-hoard/error"
-	"wisdom-hoard/util"
+	. "github.com/yohanc3/link-vault/error"
+	"github.com/yohanc3/link-vault/util"
 
 	"github.com/lib/pq"
 )

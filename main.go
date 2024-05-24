@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"wisdom-hoard/bot"
-	"wisdom-hoard/storage"
+	"github.com/yohanc3/link-vault/bot"
+	"github.com/yohanc3/link-vault/storage"
 
 	"github.com/joho/godotenv"
 )

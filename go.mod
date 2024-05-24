@@ -1,4 +1,4 @@
-module wisdom-hoard
+module github.com/yohanc3/link-vault
 
 go 1.22.3
 

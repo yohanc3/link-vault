@@ -1,7 +1,7 @@
 package errors
 
 import (
-	. "wisdom-hoard/config"
+	. "github.com/yohanc3/link-vault/config"
 )
 
 type Error struct {

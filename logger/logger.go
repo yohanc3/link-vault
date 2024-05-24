@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	util "wisdom-hoard/util"
+	util "github.com/yohanc3/link-vault/util"
 
 	"github.com/rs/zerolog"
 )
