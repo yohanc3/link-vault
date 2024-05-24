@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	. "wisdom-hoard/error"
 	"wisdom-hoard/util"
 
 	"github.com/lib/pq"
 )
-
 
 type PostgresStorage struct {
 	Client *sql.DB
@@ -38,7 +38,7 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 	
 	if err != nil {
 		fmt.Println("Something went wrong when fetching links")
-		return nil, errors.New("something went wrong")
+		return nil, GenericError
 	}
 	
 	defer rows.Close()
@@ -51,8 +51,8 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 		err := rows.Scan(&link, &tagsJson); 
 
 		if err != nil {
-			fmt.Println("Error when scanning link or tagsJson in getlinks")
-			return nil, errors.New("something went wrong")
+			fmt.Println("Error when scanning link or tagsJson in getlinks, error: ", err)
+			return nil, GenericError
 		}
 
 		var tags []string
@@ -68,7 +68,8 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 	err = rows.Err()
 
 	if err != nil {		
-    	panic(err)
+    	fmt.Println("Error when iterating through rows: ", err)
+			return nil, GenericError
   	}
 	
 	fmt.Println("\nlinks to send: ", links)
@@ -83,7 +84,7 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 
 	if error != nil {
 		fmt.Println("Error when calling getlinksbyurl")
-		return nil, errors.New("something went wrong")
+		return nil, GenericError 
 	}
 
 	fmt.Println("Repeated link: ", potentialDuplicateLink, "previous tags: ", previousTags)
@@ -93,7 +94,7 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 
 		if error != nil {
 			fmt.Println("Something went wrong when updating link tags, error: ", error)
-			return nil, errors.New("something went wrong")
+			return nil, GenericError 
 		}
 		return mergedTags, nil 
 	}
@@ -123,11 +124,16 @@ func (s *PostgresStorage) UpdateLinkTags(username string, previousTags []string,
 	var mergedTags []string = util.MergeSlices(newTags, previousTags)
 	mergedTagsJSON, err := json.Marshal(mergedTags)
 
+	if err != nil {
+		fmt.Println("Error when updating links' tags", err) 
+		return nil, GenericError 
+	}
+
 	_, queryError:= s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2", mergedTagsJSON, username)
 
 		if queryError != nil {
-			fmt.Println("Error when updating links' tags", err)
-			return nil, errors.New("something went wrong")
+			fmt.Println("Error when updating links' tags", queryError)
+			return nil, GenericError 
 		}
 
 		return mergedTags, nil
@@ -139,7 +145,7 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 
 	if err != nil {
 			fmt.Println("Error when trying to query db in getlinksbyurl", err)
-			return "", nil, errors.New("something went wrong")
+			return "", nil, GenericError 
 	}
 
 	var repeatedLink string
@@ -154,7 +160,7 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 
 		if err != nil {
 			fmt.Println("Error when trying to scan links in getlinksbyurl", err)
-			return "", nil, errors.New("something went wrong")
+			return "", nil, GenericError 
 		}
 
 		//Unmarshal json tags into array of string tags
@@ -162,7 +168,7 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 
 		if err != nil {
 			fmt.Println("Error when unmarshaling jsontags")
-			return "", nil, errors.New("something went wrong")
+			return "", nil, GenericError 
 		}
 	}
 
@@ -175,7 +181,7 @@ func (s *PostgresStorage) GetUserTags(username string) ([]string, error) {
 
 	if err != nil {
 		fmt.Println("Error when retrieving user tags, error: ", err)
-		return []string{}, errors.New("something went wrong, try again later")
+		return []string{}, GenericError
 	}
 
 	defer rows.Close()
@@ -189,7 +195,7 @@ func (s *PostgresStorage) GetUserTags(username string) ([]string, error) {
 
 		if err != nil {
 			fmt.Println("Error ocurred when parsing tags rows")
-			return []string{}, errors.New("something went wrong, try again later")
+			return []string{}, GenericError
 		}
 
 		tags = append(tags, tag)
