@@ -84,16 +84,6 @@ func NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, st
 
 }
 
-func sendErrorMessage(discord *discordgo.Session, channelId string, err error){
-	var message string
-	if BotError, ok := err.(*Error); ok {
-		message = BotError.UserMessage
-	} else {
-			message = GenericErrorMessage
-	}
-	discord.ChannelMessageSend(channelId, message)
-}
-
 func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 		username := message.Author.Username
@@ -193,4 +183,14 @@ func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCre
 		},
 	}
 	discord.ChannelMessageSendEmbed(message.ChannelID, embed)
+}
+
+func sendErrorMessage(discord *discordgo.Session, channelId string, err error){
+	var message string
+	if BotError, ok := err.(*Error); ok {
+		message = BotError.UserMessage
+	} else {
+			message = GenericErrorMessage
+	}
+	discord.ChannelMessageSend(channelId, message)
 }
