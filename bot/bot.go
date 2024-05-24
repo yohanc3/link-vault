@@ -99,7 +99,11 @@ func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCre
 			panic(err)
 		}
 
-		linksArr := storage.GetLinks(username, tags)
+		linksArr, err := storage.GetLinks(username, tags)
+		if err != nil {
+			discord.ChannelMessageSend(message.ChannelID, err.Error())
+			return
+		}
 
 		if len(linksArr) == 0 {
 			discord.ChannelMessageSend(message.ChannelID, "You don't have any urls saved with this tag:(")
@@ -127,6 +131,7 @@ func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCre
 		panic(err)
 	}
 
+	//Merged tags are received only if the link has been saved before
 	mergedTags, error := storage.InsertLinkAndTags(username, url, tags)
 
 	if error != nil {

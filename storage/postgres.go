@@ -1,7 +1,6 @@
 package storage
 
 import (
-	// "context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -32,19 +31,19 @@ func NewPostgresDb(psqlInfo string) *PostgresStorage {
 	}
 }
 
-func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string) {
+func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, error) {
 
 	
 	rows, err := s.Client.Query("SELECT DISTINCT link, tags FROM links WHERE username = $1 AND tags ?| $2::text[];", username, pq.Array(tags))
 	
 	if err != nil {
 		fmt.Println("Something went wrong when fetching links")
-		return nil
+		return nil, errors.New("something went wrong")
 	}
 	
 	defer rows.Close()
 	
-	var results []string
+	var links []string
 
 	for rows.Next() {
 		var link string
@@ -52,7 +51,8 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string) {
 		err := rows.Scan(&link, &tagsJson); 
 
 		if err != nil {
-				panic(err)
+			fmt.Println("Error when scanning link or tagsJson in getlinks")
+			return nil, errors.New("something went wrong")
 		}
 
 		var tags []string
@@ -62,7 +62,7 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string) {
 			panic(err)
 		}
 		
-		results = append(results, link)
+		links = append(links, link)
 	}
 
 	err = rows.Err()
@@ -71,52 +71,38 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string) {
     	panic(err)
   	}
 	
-	fmt.Println("\nlinks to send: ", results)
-	return results
+	fmt.Println("\nlinks to send: ", links)
+	return links, nil
 
 }
 
 
 func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags []string) ([]string, error) {
 
-	tagsJSON, err := json.Marshal(tags)
-
-	if err != nil {
-		fmt.Println("error when marshaling tagsJSON")
-		return nil, errors.New("something went wrong, try again later")
-	}
-
-	repeatedLink, previousTags, error := s.GetLinksByUrl(username, link)
-
-	fmt.Println("REpeated link: ", repeatedLink, "previous tags: ", previousTags)
+	potentialDuplicateLink, previousTags, error := s.GetLinksByUrl(username, link)
 
 	if error != nil {
 		fmt.Println("Error when calling getlinksbyurl")
 		return nil, errors.New("something went wrong")
 	}
 
-	var	isLinkRepeated bool = false
+	fmt.Println("Repeated link: ", potentialDuplicateLink, "previous tags: ", previousTags)
 
-	if repeatedLink == link{
-		isLinkRepeated = true
-	}
+	if potentialDuplicateLink == link{
+		mergedTags, error := s.UpdateLinkTags(username, previousTags, tags)
 
-	var mergedTags []string = util.MergeSlices(tags, previousTags)
-	mergedTagsJSON, err := json.Marshal(mergedTags)
-
-	if err != nil {
-		return nil, errors.New("something went wrong")
-	}
-
-	if isLinkRepeated{
-		_, err := s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2", mergedTagsJSON, username)
-
-		if err != nil {
-			fmt.Println("Error when updating links' tags", err)
+		if error != nil {
+			fmt.Println("Something went wrong when updating link tags, error: ", error)
 			return nil, errors.New("something went wrong")
 		}
+		return mergedTags, nil 
+	}
 
-		return mergedTags, nil
+	tagsJSON, err := json.Marshal(tags)
+
+	if err != nil {
+		fmt.Println("error when marshaling tagsJSON")
+		return nil, errors.New("something went wrong, try again later")
 	}
 
 	_, err = s.Client.Exec("INSERT INTO links (username, link, tags) VALUES ($1, $2, $3)", username, link, tagsJSON)
@@ -132,48 +118,55 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 
 }
 
+func (s *PostgresStorage) UpdateLinkTags(username string, previousTags []string, newTags []string) ([]string, error) {
+
+	var mergedTags []string = util.MergeSlices(newTags, previousTags)
+	mergedTagsJSON, err := json.Marshal(mergedTags)
+
+	_, queryError:= s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2", mergedTagsJSON, username)
+
+		if queryError != nil {
+			fmt.Println("Error when updating links' tags", err)
+			return nil, errors.New("something went wrong")
+		}
+
+		return mergedTags, nil
+}
+
 func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, []string, error){
-	rows, err := s.Client.Query("SELECT links, tags FROM links WHERE username = $1 AND link = $2", username, link)
+	
+	rows, err := s.Client.Query("SELECT link, tags FROM links WHERE username = $1 AND link = $2", username, link)
 
 	if err != nil {
 			fmt.Println("Error when trying to query db in getlinksbyurl", err)
 			return "", nil, errors.New("something went wrong")
 	}
-	var repeatedLink string
-	var newTags []string
 
+	var repeatedLink string
+	var tags []string
+
+	//traverse through the byte like values returned, scan them and save them.
 	defer rows.Close()
 	for rows.Next() {
-		var item string 
-		var jsontags []byte
+		var tagsJSON []byte
 
-		err := rows.Scan(&item, &jsontags)
+		err := rows.Scan(&repeatedLink, &tagsJSON)
 
 		if err != nil {
 			fmt.Println("Error when trying to scan links in getlinksbyurl", err)
 			return "", nil, errors.New("something went wrong")
 		}
 
-		var tags []string
-
-		err = json.Unmarshal(jsontags, &tags)
+		//Unmarshal json tags into array of string tags
+		err = json.Unmarshal(tagsJSON, &tags)
 
 		if err != nil {
 			fmt.Println("Error when unmarshaling jsontags")
 			return "", nil, errors.New("something went wrong")
 		}
-
-				// Split the string by commas
-		parts := strings.Split(item, ",")
-
-		// Extract the second element (index 1) after trimming any leading/trailing whitespace
-		repeatedLink = strings.TrimSpace(parts[1])
-		newTags = tags
-
 	}
 
-	return repeatedLink, newTags, nil
-
+	return repeatedLink, tags, nil
 
 }
 
@@ -187,7 +180,7 @@ func (s *PostgresStorage) GetUserTags(username string) ([]string, error) {
 
 	defer rows.Close()
 
-	var results []string
+	var tags []string
 
 	for rows.Next(){
 		var tag string
@@ -199,9 +192,8 @@ func (s *PostgresStorage) GetUserTags(username string) ([]string, error) {
 			return []string{}, errors.New("something went wrong, try again later")
 		}
 
-		results = append(results, tag)
-
+		tags = append(tags, tag)
 	}
 
-	return results, nil
+	return tags, nil
 }
