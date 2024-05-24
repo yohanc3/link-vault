@@ -2,13 +2,13 @@ package bot
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
 	. "wisdom-hoard/config"
 
 	. "wisdom-hoard/error"
+	. "wisdom-hoard/logger"
 	"wisdom-hoard/storage"
 	"wisdom-hoard/util"
 
@@ -18,15 +18,10 @@ import (
 type Bot struct {
 	token	string
 	storage	storage.Storage
+
 }
 
 var BotToken string
-
-func checkNill(e error){
-	if e != nil{
-		log.Fatal("Error message: ", e)
-	}
-}
 
 func NewBot(botToken string, storage storage.Storage) *Bot{
 	return &Bot{
@@ -39,11 +34,14 @@ func (b *Bot) Run(){
 
 	//create a session
 	discord, err := discordgo.New("Bot " + b.token)
-	checkNill(err)
-
+	if err != nil {
+		GeneralLogger.Fatal().Msg("Discordgo bot could not run. Error: " + err.Error())
+		return
+	}
+	
 	//add event handler
 	discord.AddHandler(func(session *discordgo.Session, message *discordgo.MessageCreate){
-		NewMessage(session, message, b.storage)
+		b.NewMessage(session, message, b.storage)
 	})
 
 	//open session
@@ -58,7 +56,7 @@ func (b *Bot) Run(){
 
 }
 
-func NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot) NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 	//Prevent bot responding to its own message
 	if message.Author.ID == discord.State.User.ID {
@@ -67,13 +65,13 @@ func NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, st
 
 	switch {
 	case strings.Contains(message.Content, BOT_PREFIX+"find"):
-		handleFindCommand(discord, message, storage)
+		b.handleFindCommand(discord, message, storage)
 
 	case strings.Contains(message.Content, BOT_PREFIX+"save"):
-		handleSaveCommand(discord, message, storage)
+		b.handleSaveCommand(discord, message, storage)
 
 	case strings.Contains(message.Content, BOT_PREFIX+"tags"):
-		handleGetTagsCommand(discord, message, storage)
+		b.handleGetTagsCommand(discord, message, storage)
 
 	case strings.Contains(message.Content, BOT_PREFIX+"help"):
 		handleHelpCommand(discord, message)
@@ -84,7 +82,7 @@ func NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, st
 
 }
 
-func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 		username := message.Author.Username
 
@@ -92,18 +90,18 @@ func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCre
 
 		if err != nil {
 			fmt.Println("error is: ", err)
-			sendErrorMessage(discord, message.ChannelID, err)
+			b.sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
 		linksArr, err := storage.GetLinks(username, tags)
 		if err != nil {
-			sendErrorMessage(discord, message.ChannelID, err)
+			b.sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
 		if len(linksArr) == 0 {
-			sendErrorMessage(discord, message.ChannelID, err)
+			b.sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
@@ -113,7 +111,7 @@ func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCre
 
 }
 
-func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot ) handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 	username := message.Author.Username
 
@@ -121,7 +119,7 @@ func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCre
 
 	if err != nil {
 		fmt.Println("error is ")
-		sendErrorMessage(discord, message.ChannelID, err)
+		b.sendErrorMessage(discord, message.ChannelID, err)
 		return
 	}
 
@@ -129,7 +127,7 @@ func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCre
 	mergedTags, err := storage.InsertLinkAndTags(username, url, tags)
 
 	if err != nil {
-		sendErrorMessage(discord, message.ChannelID, err)
+		b.sendErrorMessage(discord, message.ChannelID, err)
 		return
 	}
 
@@ -143,7 +141,7 @@ func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCre
 	fmt.Println("Success!!")	
 }
 
-func handleGetTagsCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot ) handleGetTagsCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 	if message.Content != BOT_PREFIX+"tags"{
 		discord.ChannelMessageSend(message.ChannelID, "Wrong command call! \nExample: \n > "+BOT_PREFIX+"tags")
@@ -152,7 +150,7 @@ func handleGetTagsCommand(discord *discordgo.Session, message *discordgo.Message
 	tags, err := storage.GetUserTags(message.Author.Username)
 
 	if err != nil {
-		sendErrorMessage(discord, message.ChannelID, err)
+		b.sendErrorMessage(discord, message.ChannelID, err)
 	}
 
 	formattedTags := util.FormatArrayToString(tags)
@@ -185,7 +183,7 @@ func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCre
 	discord.ChannelMessageSendEmbed(message.ChannelID, embed)
 }
 
-func sendErrorMessage(discord *discordgo.Session, channelId string, err error){
+func (b *Bot ) sendErrorMessage(discord *discordgo.Session, channelId string, err error){
 	var message string
 	if BotError, ok := err.(*Error); ok {
 		message = BotError.UserMessage

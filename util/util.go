@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 	. "wisdom-hoard/config"
 	. "wisdom-hoard/error"
 )
@@ -126,4 +127,10 @@ func MergeSlices(slice1, slice2 []string) []string {
 	}
 
 	return result
+}
+
+func CurrentTime() string {
+	now := time.Now()
+	formattedTime := now.Format("01/02/2006 15:04")
+	return formattedTime
 }
