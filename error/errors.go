@@ -4,6 +4,7 @@ import (
 	. "github.com/yohanc3/link-vault/config"
 )
 
+//Error struct
 type Error struct {
 	UserMessage string
 	LogMessage string
@@ -43,6 +44,7 @@ var (
 	}
 )
 
+//Create new personalized error
 func NewError(userMessage, logMessage string) error {
 	return &Error{
 			UserMessage: userMessage,

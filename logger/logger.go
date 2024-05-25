@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	util "github.com/yohanc3/link-vault/util"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -27,10 +27,6 @@ func InitLogger(name string) zerolog.Logger {
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
     0664,
 	)
-	
-	if err != nil{
-		panic("Not able to open file at " + fileName)
-	}
 
 	var logger zerolog.Logger = zerolog.New(zerolog.ConsoleWriter{
 		Out: file,
@@ -38,11 +34,11 @@ func InitLogger(name string) zerolog.Logger {
 		FormatLevel: func(i interface{}) string {
 			return strings.ToUpper(fmt.Sprintf("[%s]", i))
 		},
-		FormatTimestamp: func(i interface{}) string {
-			return util.CurrentTime()
-		},
 		FormatMessage: func(i interface{}) string {
 			return fmt.Sprintf("| %s |", i)
+		},
+		FormatTimestamp: func(i interface{}) string {
+			return CurrentTime()
 		},
 		FormatCaller: func(i interface{}) string {
 			return filepath.Base(fmt.Sprintf("%s", i))
@@ -60,3 +56,11 @@ func InitLogger(name string) zerolog.Logger {
 
 var GeneralLogger zerolog.Logger = InitLogger("general")
 var StorageLogger zerolog.Logger = InitLogger("storage")
+
+
+func CurrentTime() string {
+	now := time.Now()
+	formattedTime := now.Format("01/02/2006 15:04")
+	return formattedTime
+}
+

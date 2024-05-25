@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+
 	. "github.com/yohanc3/link-vault/config"
 
 	. "github.com/yohanc3/link-vault/error"
@@ -38,7 +39,7 @@ func (b *Bot) Run(){
 		GeneralLogger.Fatal().Msg("Discordgo bot could not run. Error: " + err.Error())
 		return
 	}
-	
+
 	//add event handler
 	discord.AddHandler(func(session *discordgo.Session, message *discordgo.MessageCreate){
 		b.NewMessage(session, message, b.storage)
@@ -89,7 +90,6 @@ func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.M
 		tags, err := util.ParseFindCommand(message.Content)
 
 		if err != nil {
-			fmt.Println("error is: ", err)
 			b.sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}

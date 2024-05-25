@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
+
 	. "github.com/yohanc3/link-vault/config"
 	. "github.com/yohanc3/link-vault/error"
+	. "github.com/yohanc3/link-vault/logger"
 )
 
 // parseFindCommand
@@ -23,14 +24,15 @@ func ParseFindCommand(input string) ([]string, error) {
 			tags := words[i+1:]
 			
 			if len(tags) == 0 {
-				fmt.Println((*InvalidTagsError).LogMessage)
+				GeneralLogger.Info().Msg( (*InvalidTagsError).LogMessage)
 				return []string{}, InvalidTagsError
 			}
 
 			return tags, nil
 		}
 	}
-	// if "+find" is not found, return an empty slice, error and true to signal this error shouldn't stop the program
+	// if "+find" is not found, return an empty slice and an error 
+	GeneralLogger.Info().Msg((*InvalidCommandError).LogMessage)
 	return []string{}, InvalidCommandError
 
 }
@@ -41,21 +43,26 @@ func ParseSaveCommand(input string) (string, []string, error){
 	words := strings.Fields(input)
 
 	if words[0] != BOT_PREFIX+"save"{
+		GeneralLogger.Info().Msg((*&InvalidCommandError.LogMessage))
 		return "", []string{}, InvalidCommandError
 	}
 
+	//If there is only +save
 	if len(words) == 1 {
+		GeneralLogger.Info().Msg((*MissingUrlError).LogMessage)
 		return "", []string{}, MissingUrlError
 	}
 	
 	url := words[1]
 	
 	if !isValidURL(url){
+		GeneralLogger.Info().Msg((*InvalidCommandError).LogMessage)
 		return "", []string{}, InvalidUrlError
 	}
 
 	//if there's only the command and the url with no additional tags
 	if len(words) == 2 {
+		GeneralLogger.Info().Msg((*MissingTagsError).LogMessage)
 		return "", []string{}, MissingTagsError
 	}
 
@@ -67,6 +74,7 @@ func ParseSaveCommand(input string) (string, []string, error){
 func isValidURL(str string) bool {
 	parsedURL, err := url.Parse(str)
 	if err != nil {
+		GeneralLogger.Debug().Str("string", str).Msg("error when parsing string" + err.Error())
 		return false
 	}
 	return parsedURL.Scheme != "" && parsedURL.Host != ""
@@ -127,10 +135,4 @@ func MergeSlices(slice1, slice2 []string) []string {
 	}
 
 	return result
-}
-
-func CurrentTime() string {
-	now := time.Now()
-	formattedTime := now.Format("01/02/2006 15:04")
-	return formattedTime
 }

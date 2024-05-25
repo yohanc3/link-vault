@@ -3,10 +3,11 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
+
 	. "github.com/yohanc3/link-vault/error"
+	. "github.com/yohanc3/link-vault/logger"
 	"github.com/yohanc3/link-vault/util"
 
 	"github.com/lib/pq"
@@ -21,7 +22,7 @@ func NewPostgresDb(psqlInfo string) *PostgresStorage {
 	db, err := sql.Open("postgres", psqlInfo)
 
 	if err != nil {
-		panic(err)
+		StorageLogger.Panic().Msg("Error when establishing connection with db." + err.Error())	
 	}
 
 	fmt.Println("Successfully started a supabase client!!")
@@ -37,7 +38,7 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 	rows, err := s.Client.Query("SELECT DISTINCT link, tags FROM links WHERE username = $1 AND tags ?| $2::text[];", username, pq.Array(tags))
 	
 	if err != nil {
-		fmt.Println("Something went wrong when fetching links")
+		StorageLogger.Error().Msg("error when fetching links from db. " + err.Error())
 		return nil, GenericError
 	}
 	
@@ -51,7 +52,7 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 		err := rows.Scan(&link, &tagsJson); 
 
 		if err != nil {
-			fmt.Println("Error when scanning link or tagsJson in getlinks, error: ", err)
+			StorageLogger.Error().Msg("error when scanning link or tagsJson. " + err.Error())
 			return nil, GenericError
 		}
 
@@ -59,7 +60,8 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 		err = json.Unmarshal(tagsJson, &tags)
 
 		if err != nil {
-			panic(err)
+			StorageLogger.Error().Str("json to unmarshal", "["+strings.Join(tags, ",")+"]").Msg("error when unmarshaling json")
+			return nil, GenericError
 		}
 		
 		links = append(links, link)
@@ -68,7 +70,7 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 	err = rows.Err()
 
 	if err != nil {		
-    	fmt.Println("Error when iterating through rows: ", err)
+			StorageLogger.Error().Msg("error when iterating through rows." + err.Error())
 			return nil, GenericError
   	}
 	
@@ -80,20 +82,19 @@ func (s *PostgresStorage) GetLinks(username string, tags []string) ([]string, er
 
 func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags []string) ([]string, error) {
 
-	potentialDuplicateLink, previousTags, error := s.GetLinksByUrl(username, link)
+	potentialDuplicateLink, previousTags, err := s.GetLinksByUrl(username, link)
 
-	if error != nil {
-		fmt.Println("Error when calling getlinksbyurl")
+	if err != nil {
 		return nil, GenericError 
 	}
 
-	fmt.Println("Repeated link: ", potentialDuplicateLink, "previous tags: ", previousTags)
+	GeneralLogger.Trace().Str("repeated link", potentialDuplicateLink).Str("previous tags", "["+strings.Join(previousTags, ",")+"]").Str("username", username).Msg("")
 
 	if potentialDuplicateLink == link{
-		mergedTags, error := s.UpdateLinkTags(username, previousTags, tags)
+		mergedTags, err := s.UpdateLinkTags(username, previousTags, tags)
 
-		if error != nil {
-			fmt.Println("Something went wrong when updating link tags, error: ", error)
+		if err != nil {
+			StorageLogger.Error().Str("username", username).Msg("error when updating link tags. " + err.Error())
 			return nil, GenericError 
 		}
 		return mergedTags, nil 
@@ -102,17 +103,15 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 	tagsJSON, err := json.Marshal(tags)
 
 	if err != nil {
-		fmt.Println("error when marshaling tagsJSON")
-		return nil, errors.New("something went wrong, try again later")
+		StorageLogger.Error().Msg("error when marshaling tagsJSON. " + err.Error())
+		return nil, GenericError
 	}
 
 	_, err = s.Client.Exec("INSERT INTO links (username, link, tags) VALUES ($1, $2, $3)", username, link, tagsJSON)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key"){
-			return nil, errors.New("you can't save the same url twice")
-		}
-		return nil, errors.New("something went wrong, try again later")
+		StorageLogger.Error().Msg("error when inserting links. " + err.Error())
+		return nil, GenericError
 	}
 
 	return nil, nil
@@ -125,14 +124,14 @@ func (s *PostgresStorage) UpdateLinkTags(username string, previousTags []string,
 	mergedTagsJSON, err := json.Marshal(mergedTags)
 
 	if err != nil {
-		fmt.Println("Error when updating links' tags", err) 
+		StorageLogger.Error().Msg("error when marshaling tags" + err.Error())
 		return nil, GenericError 
 	}
 
-	_, queryError:= s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2", mergedTagsJSON, username)
+	_, err = s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2", mergedTagsJSON, username)
 
-		if queryError != nil {
-			fmt.Println("Error when updating links' tags", queryError)
+		if err != nil {
+			StorageLogger.Error().Msg("error when updating links' tags" + err.Error())
 			return nil, GenericError 
 		}
 
@@ -144,8 +143,7 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 	rows, err := s.Client.Query("SELECT link, tags FROM links WHERE username = $1 AND link = $2", username, link)
 
 	if err != nil {
-			fmt.Println("Error when trying to query db in getlinksbyurl", err)
-			return "", nil, GenericError 
+		return "", nil, GenericError 
 	}
 
 	var repeatedLink string
@@ -159,7 +157,7 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 		err := rows.Scan(&repeatedLink, &tagsJSON)
 
 		if err != nil {
-			fmt.Println("Error when trying to scan links in getlinksbyurl", err)
+			StorageLogger.Error().Msg("error when scanning links. " + err.Error())
 			return "", nil, GenericError 
 		}
 
@@ -167,7 +165,7 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 		err = json.Unmarshal(tagsJSON, &tags)
 
 		if err != nil {
-			fmt.Println("Error when unmarshaling jsontags")
+			StorageLogger.Error().Msg("Error when unmarshaling jsontags. " + err.Error())
 			return "", nil, GenericError 
 		}
 	}
@@ -180,7 +178,7 @@ func (s *PostgresStorage) GetUserTags(username string) ([]string, error) {
 	rows, err := s.Client.Query("SELECT DISTINCT jsonb_array_elements_text(tags) AS unique_tag FROM links WHERE username = $1;", username)
 
 	if err != nil {
-		fmt.Println("Error when retrieving user tags, error: ", err)
+		StorageLogger.Error().Msg("error when retrieving user tags. " + err.Error())
 		return []string{}, GenericError
 	}
 
@@ -194,7 +192,7 @@ func (s *PostgresStorage) GetUserTags(username string) ([]string, error) {
 		err := rows.Scan(&tag)
 
 		if err != nil {
-			fmt.Println("Error ocurred when parsing tags rows")
+			StorageLogger.Error().Msg("error when scanning rows. " + err.Error())
 			return []string{}, GenericError
 		}
 
