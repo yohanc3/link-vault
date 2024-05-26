@@ -23,7 +23,7 @@ func ParseFindCommand(input string) ([]string, error) {
 			tags := words[i+1:]
 			
 			if len(tags) == 0 {
-				GeneralLogger.Info().Msg( (*InvalidTagsError).LogMessage)
+				GeneralLogger.Info().Msg((*InvalidTagsError).LogMessage)
 				return []string{}, InvalidTagsError
 			}
 

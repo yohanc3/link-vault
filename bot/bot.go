@@ -127,7 +127,8 @@ func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.M
 		}
 
 		if len(linksArr) == 0 {
-			sendErrorMessage(discord, message.ChannelID, err)
+			GeneralLogger.Info().Str("error", InvalidTagsError.LogMessage).Msg("")
+			sendErrorMessage(discord, message.ChannelID, InvalidTagsError)
 			return
 		}
 
