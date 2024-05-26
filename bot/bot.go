@@ -153,34 +153,44 @@ func (b *Bot ) handleGetTagsCommand(discord *discordgo.Session, message *discord
 		b.sendErrorMessage(discord, message.ChannelID, err)
 	}
 
-	formattedTags := util.FormatArrayToString(tags)
+	formattedTags := strings.Join(tags, " ")
 
 	discord.ChannelMessageSend(message.ChannelID, "Your previously used tags: \n " + "**```\n" + formattedTags + "\n```**")
 }
 
 func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCreate){
-	embed := &discordgo.MessageEmbed{
-		Title:       "All commands",
-		Color:       0xfacd14,
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   BOT_PREFIX+"save",
-				Value:  "Saves a url. You have to pass a valid url and tags that describe the type of content. \n Example: \n > "+BOT_PREFIX+"save https://example.com/ cinema sports literature\n\n",
-				Inline: false,
-			},
-			{
-				Name:   BOT_PREFIX+"find",
-				Value:  "Given a list of categories, it retrieves all links that contain at least one of the given categories. \n Example: \n > "+BOT_PREFIX+"find cinema sports literature\n\n",
-				Inline: false,
-			},
-			{
-				Name:   BOT_PREFIX+"tags",
-				Value:  "Returns all active tags you have previously used. \n Example: \n > "+BOT_PREFIX+"tags\n\n",
-				Inline: false,
-			},
+
+
+	var embedFields []*discordgo.MessageEmbedField = []*discordgo.MessageEmbedField{
+		{
+			Name:   BOT_PREFIX+"save",
+			Value:  "Saves a url. You have to pass a valid url and tags that describe the type of content. \n Example: \n > "+BOT_PREFIX+"save https://example.com/ cinema sports literature\n\n",
+			Inline: false,
+		},
+		{
+			Name:   BOT_PREFIX+"find",
+			Value:  "Given a list of categories, it retrieves all links that contain at least one of the given categories. \n Example: \n > "+BOT_PREFIX+"find cinema sports literature\n\n",
+			Inline: false,
+		},
+		{
+			Name:   BOT_PREFIX+"tags",
+			Value:  "Returns all active tags you have previously used. \n Example: \n > "+BOT_PREFIX+"tags\n\n",
+			Inline: false,
 		},
 	}
-	discord.ChannelMessageSendEmbed(message.ChannelID, embed)
+
+	var embedTitle string = "All commands"
+	sendMessageEmbed(discord, message.ChannelID, embedTitle, embedFields)
+}
+
+func sendMessageEmbed(discord *discordgo.Session, channelId string, title string, fields []*discordgo.MessageEmbedField){
+	embed := &discordgo.MessageEmbed{
+		Title: title,
+		Color: 0xfacd14,
+		Fields: fields,
+	}
+
+	discord.ChannelMessageSendEmbed(channelId, embed)
 }
 
 func (b *Bot ) sendErrorMessage(discord *discordgo.Session, channelId string, err error){

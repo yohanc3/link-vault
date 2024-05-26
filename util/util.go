@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -78,37 +77,6 @@ func isValidURL(str string) bool {
 		return false
 	}
 	return parsedURL.Scheme != "" && parsedURL.Host != ""
-}
-
-func FormatArrayToString(arr []string) string {
-	// Determine the maximum width of the elements
-	maxWidth := 0
-	for _, str := range arr {
-		if len(str) > maxWidth {
-			maxWidth = len(str)
-		}
-	}
-
-	var builder strings.Builder
-
-	// Loop through the array and format each row
-	for i := 0; i < len(arr); i += 4 {
-		end := i + 4
-		if end > len(arr) {
-			end = len(arr)
-		}
-		row := arr[i:end]
-
-		for j, item := range row {
-			if j > 0 {
-				builder.WriteString(" ") // Add space between columns
-			}
-			builder.WriteString(fmt.Sprintf("%-*s", maxWidth, item))
-		}
-		builder.WriteString("\n") // Add a newline at the end of each row
-	}
-
-	return builder.String()
 }
 
 // Function to merge two slices and remove duplicates
