@@ -118,6 +118,15 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 
 }
 
+func (s *PostgresStorage) DeleteLink(username string, link string) error {
+	_, err := s.Client.Exec("DELETE FROM links WHERE link = $1 AND username = $2", link, username)
+	if err != nil {
+		StorageLogger.Error().Str("error", err.Error()).Msg("error when deleting link")
+		return GenericError
+	}
+	return nil
+}
+
 func (s *PostgresStorage) UpdateLinkTags(username string, link string, previousTags []string, newTags []string) ([]string, error) {
 
 	var mergedTags []string = util.MergeSlices(newTags, previousTags)

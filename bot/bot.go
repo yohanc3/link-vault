@@ -65,6 +65,7 @@ func (b *Bot) NewMessage(discord *discordgo.Session, message *discordgo.MessageC
 	}
 
 	switch {
+		
 	case strings.Contains(message.Content, BOT_PREFIX+"find"):
 		b.handleFindCommand(discord, message, storage)
 
@@ -74,14 +75,38 @@ func (b *Bot) NewMessage(discord *discordgo.Session, message *discordgo.MessageC
 	case strings.Contains(message.Content, BOT_PREFIX+"tags"):
 		b.handleGetTagsCommand(discord, message, storage)
 
+	case strings.Contains(message.Content, BOT_PREFIX+"delete"):
+		b.handleDeleteCommand(discord, message, storage)
+
 	case strings.Contains(message.Content, BOT_PREFIX+"help"):
-		handleHelpCommand(discord, message)
+		b.handleHelpCommand(discord, message)
 
 	case strings.HasPrefix(message.Content, BOT_PREFIX):
 		var messageContent string = "Oops, that's not a valid command! Try "+BOT_PREFIX+"help to find all valid commands!"
 		sendMessage(discord, message.ChannelID, messageContent)
 	}
 
+}
+
+func (b *Bot) handleDeleteCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+
+	username := message.Author.Username
+
+	link, err := util.ParseDeleteCommand(message.Content)
+
+	if err != nil {
+		sendErrorMessage(discord, message.ChannelID, err)
+		return
+	}
+
+	err = storage.DeleteLink(username, link)
+
+	if err != nil {
+		sendErrorMessage(discord, message.ChannelID, err)
+		return
+	}
+
+	sendMessage(discord, message.ChannelID, "Link was successfully deleted!")
 }
 
 func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
@@ -174,7 +199,7 @@ func (b *Bot ) handleGetTagsCommand(discord *discordgo.Session, message *discord
 	sendMessage(discord, message.ChannelID, messageContent)
 }
 
-func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCreate){
+func (b* Bot) handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCreate){
 
 
 	var embedFields []*discordgo.MessageEmbedField = []*discordgo.MessageEmbedField{

@@ -15,6 +15,9 @@ type Storage interface {
 
 	//Takes in: string username. Returns: array of strings tags and error
 	GetUserTags(string) ([]string, error)
+
+	//Takes in: string username, string link. Returns error (if any)
+	DeleteLink(string, string) error
 }
 
 

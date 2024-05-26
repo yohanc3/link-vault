@@ -69,6 +69,23 @@ func ParseSaveCommand(input string) (string, []string, error){
 
 }
 
+func ParseDeleteCommand(input string) (string, error) {
+
+	items := strings.Split(input, " ")
+
+	if len(items) == 1 {
+		return "", MissingUrlError
+	}
+
+	if len(items) > 2 {
+		err := NewError("You can only pass the url, no extra parameters are needed...", "extra parameters given")
+		return "", err
+	}
+
+	return items[1], nil
+
+}
+
 // isValidURL checks if the given string is a valid URL.
 func isValidURL(str string) bool {
 	parsedURL, err := url.Parse(str)
