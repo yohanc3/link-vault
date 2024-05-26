@@ -105,9 +105,21 @@ func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.M
 			return
 		}
 
-		var stringifiedLinks string = strings.Join(linksArr, " ")
+		var embedFields []*discordgo.MessageEmbedField = []*discordgo.MessageEmbedField{}
 
-		discord.ChannelMessageSend(message.ChannelID, stringifiedLinks)
+		for i, v := range linksArr{
+			var field discordgo.MessageEmbedField = discordgo.MessageEmbedField{
+				Name: fmt.Sprint("→  ", i+1),
+				Value: v,
+				Inline: false,
+				
+			}
+			embedFields = append(embedFields, &field)
+		}
+
+		stringifiedTags := strings.Join(tags, ", ")
+
+		sendMessageEmbed(discord, message.ChannelID, "Results for tags " + "**```" + stringifiedTags + "```**", embedFields)
 
 }
 
@@ -132,7 +144,8 @@ func (b *Bot ) handleSaveCommand(discord *discordgo.Session, message *discordgo.
 	}
 
 	if mergedTags != nil {
-		discord.ChannelMessageSend(message.ChannelID, "Your link has been successfully updated! The new tags for this link are: " + util.FormatArrayToString(mergedTags))
+		var styledMergedTags string = strings.Join(mergedTags, " ")
+		discord.ChannelMessageSend(message.ChannelID, "Your link has been successfully updated! The new tags for this link are: " + styledMergedTags)
 		return
 	}
 
