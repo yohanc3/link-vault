@@ -78,7 +78,8 @@ func (b *Bot) NewMessage(discord *discordgo.Session, message *discordgo.MessageC
 		handleHelpCommand(discord, message)
 
 	case strings.HasPrefix(message.Content, BOT_PREFIX):
-		discord.ChannelMessageSend(message.ChannelID, "Oops, that's not a valid command! Try "+BOT_PREFIX+"help to find all valid commands!")
+		var messageContent string = "Oops, that's not a valid command! Try "+BOT_PREFIX+"help to find all valid commands!"
+		sendMessage(discord, message.ChannelID, messageContent)
 	}
 
 }
@@ -90,18 +91,18 @@ func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.M
 		tags, err := util.ParseFindCommand(message.Content)
 
 		if err != nil {
-			b.sendErrorMessage(discord, message.ChannelID, err)
+			sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
 		linksArr, err := storage.GetLinks(username, tags)
 		if err != nil {
-			b.sendErrorMessage(discord, message.ChannelID, err)
+			sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
 		if len(linksArr) == 0 {
-			b.sendErrorMessage(discord, message.ChannelID, err)
+			sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
@@ -131,7 +132,7 @@ func (b *Bot ) handleSaveCommand(discord *discordgo.Session, message *discordgo.
 
 	if err != nil {
 		fmt.Println("error is ")
-		b.sendErrorMessage(discord, message.ChannelID, err)
+		sendErrorMessage(discord, message.ChannelID, err)
 		return
 	}
 
@@ -139,36 +140,38 @@ func (b *Bot ) handleSaveCommand(discord *discordgo.Session, message *discordgo.
 	mergedTags, err := storage.InsertLinkAndTags(username, url, tags)
 
 	if err != nil {
-		b.sendErrorMessage(discord, message.ChannelID, err)
+		sendErrorMessage(discord, message.ChannelID, err)
 		return
 	}
 
 	if mergedTags != nil {
 		var styledMergedTags string = strings.Join(mergedTags, " ")
-		discord.ChannelMessageSend(message.ChannelID, "Your link has been successfully updated! The new tags for this link are: " + styledMergedTags)
+		var messageContent string =  "Your link has been successfully updated! Now the tags for this link are " + "**```" + styledMergedTags + "```**"
+
+		sendMessage(discord, message.ChannelID, messageContent)
 		return
 	}
 
-	discord.ChannelMessageSend(message.ChannelID, "Yay! Your save was a success!")
-
-	fmt.Println("Success!!")	
+	sendMessage(discord, message.ChannelID, "Yay! Your save was a success!")
 }
 
 func (b *Bot ) handleGetTagsCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 	if message.Content != BOT_PREFIX+"tags"{
-		discord.ChannelMessageSend(message.ChannelID, "Wrong command call! \nExample: \n > "+BOT_PREFIX+"tags")
+		var messageContent string = "Wrong command call! \nExample: \n >" +BOT_PREFIX+ "tags" 
+		sendMessage(discord, message.ChannelID, messageContent)
+		return
 	}
 
 	tags, err := storage.GetUserTags(message.Author.Username)
 
 	if err != nil {
-		b.sendErrorMessage(discord, message.ChannelID, err)
+		sendErrorMessage(discord, message.ChannelID, err)
 	}
 
 	formattedTags := strings.Join(tags, " ")
-
-	discord.ChannelMessageSend(message.ChannelID, "Your previously used tags: \n " + "**```\n" + formattedTags + "\n```**")
+	var messageContent string = "Your previously used tags: \n " + "**```\n" + formattedTags + "\n```**"
+	sendMessage(discord, message.ChannelID, messageContent)
 }
 
 func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCreate){
@@ -196,6 +199,15 @@ func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCre
 	sendMessageEmbed(discord, message.ChannelID, embedTitle, embedFields)
 }
 
+func sendMessage(discord *discordgo.Session, channelId string, message string){
+	_, err := discord.ChannelMessageSend(channelId, message)
+
+	if err != nil{
+		GeneralLogger.Error().Str("error: ", err.Error()).Msg(DiscordMessageSendError.LogMessage)
+	}
+
+}
+
 func sendMessageEmbed(discord *discordgo.Session, channelId string, title string, fields []*discordgo.MessageEmbedField){
 	embed := &discordgo.MessageEmbed{
 		Title: title,
@@ -203,15 +215,20 @@ func sendMessageEmbed(discord *discordgo.Session, channelId string, title string
 		Fields: fields,
 	}
 
-	discord.ChannelMessageSendEmbed(channelId, embed)
+	_, err := discord.ChannelMessageSendEmbed(channelId, embed)
+
+	if err != nil {
+		GeneralLogger.Error().Str("error", err.Error()).Msg(DiscordMessageSendError.LogMessage)
+		return
+	}
 }
 
-func (b *Bot ) sendErrorMessage(discord *discordgo.Session, channelId string, err error){
+func sendErrorMessage(discord *discordgo.Session, channelId string, err error){
 	var message string
 	if BotError, ok := err.(*Error); ok {
 		message = BotError.UserMessage
 	} else {
 			message = GenericErrorMessage
 	}
-	discord.ChannelMessageSend(channelId, message)
+	sendMessage(discord, channelId, message)
 }

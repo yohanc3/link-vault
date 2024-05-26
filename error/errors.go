@@ -37,11 +37,17 @@ var (
 		LogMessage: "missing url",
 		UserMessage: "You are missing the url! \nExample: \n "+BOT_PREFIX+"save https://example.com/ cinema tech soccer",
 	}
+	//No user message since an error occured
+	DiscordMessageSendError = &Error{
+		LogMessage: "discord message coulnd't be sent",
+		UserMessage: GenericError.UserMessage,
+	}
 	//Avoid using LogMessage when using GenericError
 	GenericError = &Error{
-		LogMessage: "Something went wrong...Try again later:(",
-		UserMessage: "Something went wrong",
+		LogMessage: "something went wrong",
+		UserMessage: "Something went wrong...Try again later:(",
 	}
+
 )
 
 //Create new personalized error
