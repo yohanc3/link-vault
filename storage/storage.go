@@ -11,10 +11,13 @@ type Storage interface {
 	InsertLinkAndTags(string, string, []string) ([]string, error)
 
 	//Takes in: string username, array of strings previousTags, array of strings newTags. Returns: mergedTags and error
-	UpdateLinkTags(string, []string, []string) ([]string, error)
+	UpdateLinkTags(string, string, []string, []string) ([]string, error)
 
 	//Takes in: string username. Returns: array of strings tags and error
 	GetUserTags(string) ([]string, error)
+
+	//Takes in: string username, string link. Returns error (if any)
+	DeleteLink(string, string) error
 }
 
 

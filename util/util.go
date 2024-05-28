@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -24,7 +23,7 @@ func ParseFindCommand(input string) ([]string, error) {
 			tags := words[i+1:]
 			
 			if len(tags) == 0 {
-				GeneralLogger.Info().Msg( (*InvalidTagsError).LogMessage)
+				GeneralLogger.Info().Msg((*InvalidTagsError).LogMessage)
 				return []string{}, InvalidTagsError
 			}
 
@@ -70,6 +69,23 @@ func ParseSaveCommand(input string) (string, []string, error){
 
 }
 
+func ParseDeleteCommand(input string) (string, error) {
+
+	items := strings.Split(input, " ")
+
+	if len(items) == 1 {
+		return "", MissingUrlError
+	}
+
+	if len(items) > 2 {
+		err := NewError("You can only pass the url, no extra parameters are needed...", "extra parameters given")
+		return "", err
+	}
+
+	return items[1], nil
+
+}
+
 // isValidURL checks if the given string is a valid URL.
 func isValidURL(str string) bool {
 	parsedURL, err := url.Parse(str)
@@ -78,37 +94,6 @@ func isValidURL(str string) bool {
 		return false
 	}
 	return parsedURL.Scheme != "" && parsedURL.Host != ""
-}
-
-func FormatArrayToString(arr []string) string {
-	// Determine the maximum width of the elements
-	maxWidth := 0
-	for _, str := range arr {
-		if len(str) > maxWidth {
-			maxWidth = len(str)
-		}
-	}
-
-	var builder strings.Builder
-
-	// Loop through the array and format each row
-	for i := 0; i < len(arr); i += 4 {
-		end := i + 4
-		if end > len(arr) {
-			end = len(arr)
-		}
-		row := arr[i:end]
-
-		for j, item := range row {
-			if j > 0 {
-				builder.WriteString(" ") // Add space between columns
-			}
-			builder.WriteString(fmt.Sprintf("%-*s", maxWidth, item))
-		}
-		builder.WriteString("\n") // Add a newline at the end of each row
-	}
-
-	return builder.String()
 }
 
 // Function to merge two slices and remove duplicates

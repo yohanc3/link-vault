@@ -88,10 +88,10 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 		return nil, GenericError 
 	}
 
-	GeneralLogger.Trace().Str("repeated link", potentialDuplicateLink).Str("previous tags", "["+strings.Join(previousTags, ",")+"]").Str("username", username).Msg("")
+	GeneralLogger.Trace().Str("given link", link).Str("repeated link", potentialDuplicateLink).Str("previous tags", "["+strings.Join(previousTags, ",")+"]").Str("username", username).Msg("")
 
 	if potentialDuplicateLink == link{
-		mergedTags, err := s.UpdateLinkTags(username, previousTags, tags)
+		mergedTags, err := s.UpdateLinkTags(username, link, previousTags, tags)
 
 		if err != nil {
 			StorageLogger.Error().Str("username", username).Msg("error when updating link tags. " + err.Error())
@@ -118,7 +118,16 @@ func (s *PostgresStorage) InsertLinkAndTags(username string, link string, tags [
 
 }
 
-func (s *PostgresStorage) UpdateLinkTags(username string, previousTags []string, newTags []string) ([]string, error) {
+func (s *PostgresStorage) DeleteLink(username string, link string) error {
+	_, err := s.Client.Exec("DELETE FROM links WHERE link = $1 AND username = $2", link, username)
+	if err != nil {
+		StorageLogger.Error().Str("error", err.Error()).Msg("error when deleting link")
+		return GenericError
+	}
+	return nil
+}
+
+func (s *PostgresStorage) UpdateLinkTags(username string, link string, previousTags []string, newTags []string) ([]string, error) {
 
 	var mergedTags []string = util.MergeSlices(newTags, previousTags)
 	mergedTagsJSON, err := json.Marshal(mergedTags)
@@ -128,7 +137,7 @@ func (s *PostgresStorage) UpdateLinkTags(username string, previousTags []string,
 		return nil, GenericError 
 	}
 
-	_, err = s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2", mergedTagsJSON, username)
+	_, err = s.Client.Exec("UPDATE links SET tags = $1 WHERE username = $2 AND link = $3", mergedTagsJSON, username, link)
 
 		if err != nil {
 			StorageLogger.Error().Msg("error when updating links' tags" + err.Error())
@@ -169,6 +178,8 @@ func (s *PostgresStorage) GetLinksByUrl(username string, link string) (string, [
 			return "", nil, GenericError 
 		}
 	}
+
+	fmt.Println("repeated link: ", repeatedLink)
 
 	return repeatedLink, tags, nil
 
