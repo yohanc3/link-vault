@@ -2,13 +2,16 @@ package bot
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
-	"wisdom-hoard/config"
-	"wisdom-hoard/storage"
-	"wisdom-hoard/util"
+
+	. "github.com/yohanc3/link-vault/config"
+
+	. "github.com/yohanc3/link-vault/error"
+	. "github.com/yohanc3/link-vault/logger"
+	"github.com/yohanc3/link-vault/storage"
+	"github.com/yohanc3/link-vault/util"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -16,17 +19,10 @@ import (
 type Bot struct {
 	token	string
 	storage	storage.Storage
+
 }
 
 var BotToken string
-
-const PREFIX string = config.BOT_PREFIX
-
-func checkNill(e error){
-	if e != nil{
-		log.Fatal("Error message: ", e)
-	}
-}
 
 func NewBot(botToken string, storage storage.Storage) *Bot{
 	return &Bot{
@@ -39,11 +35,14 @@ func (b *Bot) Run(){
 
 	//create a session
 	discord, err := discordgo.New("Bot " + b.token)
-	checkNill(err)
+	if err != nil {
+		GeneralLogger.Fatal().Msg("Discordgo bot could not run. Error: " + err.Error())
+		return
+	}
 
 	//add event handler
 	discord.AddHandler(func(session *discordgo.Session, message *discordgo.MessageCreate){
-		NewMessage(session, message, b.storage)
+		b.NewMessage(session, message, b.storage)
 	})
 
 	//open session
@@ -58,7 +57,7 @@ func (b *Bot) Run(){
 
 }
 
-func NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot) NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 	//Prevent bot responding to its own message
 	if message.Author.ID == discord.State.User.ID {
@@ -66,43 +65,43 @@ func NewMessage(discord *discordgo.Session, message *discordgo.MessageCreate, st
 	}
 
 	switch {
-	case strings.Contains(message.Content, PREFIX+"find"):
-		handleFindCommand(discord, message, storage)
+	case strings.Contains(message.Content, BOT_PREFIX+"find"):
+		b.handleFindCommand(discord, message, storage)
 
-	case strings.Contains(message.Content, PREFIX+"save"):
-		handleSaveCommand(discord, message, storage)
+	case strings.Contains(message.Content, BOT_PREFIX+"save"):
+		b.handleSaveCommand(discord, message, storage)
 
-	case strings.Contains(message.Content, PREFIX+"tags"):
-		handleGetTagsCommand(discord, message, storage)
+	case strings.Contains(message.Content, BOT_PREFIX+"tags"):
+		b.handleGetTagsCommand(discord, message, storage)
 
-	case strings.Contains(message.Content, PREFIX+"help"):
+	case strings.Contains(message.Content, BOT_PREFIX+"help"):
 		handleHelpCommand(discord, message)
 
-	case strings.HasPrefix(message.Content, PREFIX):
-		discord.ChannelMessageSend(message.ChannelID, "Oops, that's not a valid command! Try "+PREFIX+"help to find all valid commands!")
+	case strings.HasPrefix(message.Content, BOT_PREFIX):
+		discord.ChannelMessageSend(message.ChannelID, "Oops, that's not a valid command! Try "+BOT_PREFIX+"help to find all valid commands!")
 	}
 
 }
 
-func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot) handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 		username := message.Author.Username
 
-		tags, err, notCriticalEror := util.ParseFindCommand(message.Content)
+		tags, err := util.ParseFindCommand(message.Content)
 
 		if err != nil {
-			fmt.Println("error is: ", err)
-			if notCriticalEror {
-				discord.ChannelMessageSend(message.ChannelID, err.Error())
-				return
-			}
-			panic(err)
+			b.sendErrorMessage(discord, message.ChannelID, err)
+			return
 		}
 
-		linksArr := storage.GetLinks(username, tags)
+		linksArr, err := storage.GetLinks(username, tags)
+		if err != nil {
+			b.sendErrorMessage(discord, message.ChannelID, err)
+			return
+		}
 
 		if len(linksArr) == 0 {
-			discord.ChannelMessageSend(message.ChannelID, "You don't have any urls saved with this tag:(")
+			b.sendErrorMessage(discord, message.ChannelID, err)
 			return
 		}
 
@@ -112,25 +111,23 @@ func handleFindCommand(discord *discordgo.Session, message *discordgo.MessageCre
 
 }
 
-func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot ) handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
 	username := message.Author.Username
 
-	url, tags, err, notCriticalError := util.ParseSaveCommand(message.Content)
+	url, tags, err := util.ParseSaveCommand(message.Content)
 
 	if err != nil {
 		fmt.Println("error is ")
-		if notCriticalError {
-			discord.ChannelMessageSend(message.ChannelID, err.Error())
-			return
-		}
-		panic(err)
+		b.sendErrorMessage(discord, message.ChannelID, err)
+		return
 	}
 
-	mergedTags, error := storage.InsertLinkAndTags(username, url, tags)
+	//Merged tags are received only if the link has been saved before
+	mergedTags, err := storage.InsertLinkAndTags(username, url, tags)
 
-	if error != nil {
-		discord.ChannelMessageSend(message.ChannelID, error.Error())
+	if err != nil {
+		b.sendErrorMessage(discord, message.ChannelID, err)
 		return
 	}
 
@@ -144,16 +141,16 @@ func handleSaveCommand(discord *discordgo.Session, message *discordgo.MessageCre
 	fmt.Println("Success!!")	
 }
 
-func handleGetTagsCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
+func (b *Bot ) handleGetTagsCommand(discord *discordgo.Session, message *discordgo.MessageCreate, storage storage.Storage){
 
-	if message.Content != PREFIX+"tags"{
-		discord.ChannelMessageSend(message.ChannelID, "Wrong command call! \nExample: \n > "+PREFIX+"tags")
+	if message.Content != BOT_PREFIX+"tags"{
+		discord.ChannelMessageSend(message.ChannelID, "Wrong command call! \nExample: \n > "+BOT_PREFIX+"tags")
 	}
 
 	tags, err := storage.GetUserTags(message.Author.Username)
 
 	if err != nil {
-		discord.ChannelMessageSend(message.ChannelID, err.Error())
+		b.sendErrorMessage(discord, message.ChannelID, err)
 	}
 
 	formattedTags := util.FormatArrayToString(tags)
@@ -167,21 +164,31 @@ func handleHelpCommand(discord *discordgo.Session, message *discordgo.MessageCre
 		Color:       0xfacd14,
 		Fields: []*discordgo.MessageEmbedField{
 			{
-				Name:   PREFIX+"save",
-				Value:  "Saves a url. You have to pass a valid url and tags that describe the type of content. \n Example: \n > "+PREFIX+"save https://example.com/ cinema sports literature\n\n",
+				Name:   BOT_PREFIX+"save",
+				Value:  "Saves a url. You have to pass a valid url and tags that describe the type of content. \n Example: \n > "+BOT_PREFIX+"save https://example.com/ cinema sports literature\n\n",
 				Inline: false,
 			},
 			{
-				Name:   PREFIX+"find",
-				Value:  "Given a list of categories, it retrieves all links that contain at least one of the given categories. \n Example: \n > "+PREFIX+"find cinema sports literature\n\n",
+				Name:   BOT_PREFIX+"find",
+				Value:  "Given a list of categories, it retrieves all links that contain at least one of the given categories. \n Example: \n > "+BOT_PREFIX+"find cinema sports literature\n\n",
 				Inline: false,
 			},
 			{
-				Name:   PREFIX+"tags",
-				Value:  "Returns all active tags you have previously used. \n Example: \n > "+PREFIX+"tags\n\n",
+				Name:   BOT_PREFIX+"tags",
+				Value:  "Returns all active tags you have previously used. \n Example: \n > "+BOT_PREFIX+"tags\n\n",
 				Inline: false,
 			},
 		},
 	}
 	discord.ChannelMessageSendEmbed(message.ChannelID, embed)
+}
+
+func (b *Bot ) sendErrorMessage(discord *discordgo.Session, channelId string, err error){
+	var message string
+	if BotError, ok := err.(*Error); ok {
+		message = BotError.UserMessage
+	} else {
+			message = GenericErrorMessage
+	}
+	discord.ChannelMessageSend(channelId, message)
 }

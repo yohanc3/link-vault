@@ -1,54 +1,54 @@
 package errors
 
-type CustomError struct {
-	ErrorType 			 ErrorType
-	InternalMessage  string
-	ExternalMessage  string
-}
-
-// Implement the error interface for CustomError
-func (e CustomError) Error() string {
-	return e.ExternalMessage
-}
-
-type ErrorType string
-
-// Predefined error types
-const (
-	InvalidCommand ErrorType = "InvalidCommand"
-	InvalidTags ErrorType = "InvalidTags"
-	InvalidUrl ErrorType = "InvalidURL"
-	MissingTags ErrorType = "MissingTags"
+import (
+	. "github.com/yohanc3/link-vault/config"
 )
+
+//Error struct
+type Error struct {
+	UserMessage string
+	LogMessage string
+}
+
+// Implement the error interface for Error
+func (e *Error) Error() string {
+	return e.LogMessage
+}
 
 // Predefined error instances
 var (
-	InvalidCommandError = CustomError{
-		ErrorType:       InvalidCommand,
-		InternalMessage: "The command is not recognized",
-		ExternalMessage: "The command issued is invalid. Please check the available commands and try again!",
+	InvalidCommandError = &Error{
+		LogMessage: "invalid command",
+		UserMessage: "The command issued is invalid. Please check the available commands and try again!",
 	}
-	InvalidTagsError = CustomError{
-		ErrorType: InvalidTags,
-		InternalMessage: "Tags were not given or are unrecognized",
-		ExternalMessage: "No tags were recognized:(",
+	InvalidTagsError = &Error{
+		LogMessage: "tags were not found",
+		UserMessage: "No tags were recognized:( \nExample: \n> " + BOT_PREFIX + "find cinema tech sports",
 	}
-	InvalidUrlError = CustomError{
-		ErrorType: InvalidUrl,
-		InternalMessage: "The provided URL is not valid",
-		ExternalMessage: "Your URL seems invalid...",
+	InvalidUrlError = &Error{
+		LogMessage: "invalid url",
+		UserMessage: "Your URL seems invalid...",
 	}
-	MissingTagsError = CustomError{
-		ErrorType: MissingTags,
-		InternalMessage: "Tags were not provided",
-		ExternalMessage: "You also need to pass in tags that describe the type of content for this post",
+	MissingTagsError = &Error{
+		LogMessage: "missing tags",
+		UserMessage: "You are missing then tags! \nExample: \n > "+BOT_PREFIX+"save https://example.com/ cinema tech soccer",
+	}
+	MissingUrlError = &Error{
+		LogMessage: "missing url",
+		UserMessage: "You are missing the url! \nExample: \n "+BOT_PREFIX+"save https://example.com/ cinema tech soccer",
+	}
+	//Avoid using LogMessage when using GenericError
+	GenericError = &Error{
+		LogMessage: "Something went wrong...Try again later:(",
+		UserMessage: "Something went wrong",
 	}
 )
 
-func NewCustomError(errorType ErrorType, internalMessage string, externalMessage string) CustomError {
-	return CustomError{
-		ErrorType:			 errorType,
-		InternalMessage: internalMessage,
-		ExternalMessage: externalMessage,
+//Create new personalized error
+func NewError(userMessage, logMessage string) error {
+	return &Error{
+			UserMessage: userMessage,
+			LogMessage:  logMessage,
 	}
 }
+

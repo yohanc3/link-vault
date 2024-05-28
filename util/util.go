@@ -1,71 +1,72 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
-	"wisdom-hoard/config"
-	customErr "wisdom-hoard/error"
+
+	. "github.com/yohanc3/link-vault/config"
+	. "github.com/yohanc3/link-vault/error"
+	. "github.com/yohanc3/link-vault/logger"
 )
 
-const PREFIX string = config.BOT_PREFIX
-
-// parseHelpCommand
-// parseHelpCommand function parses the input string and returns a slice of strings
+// parseFindCommand
+// parseFindCommand function parses the input string and returns a slice of strings
 // that come after the "{'PREFIX'}help" command.
-// Returns []string for tags, error, and if error is not critical
-func ParseFindCommand(input string) ([]string, error, bool) {
+// Returns []string for tags and error
+func ParseFindCommand(input string) ([]string, error) {
 	// Split the input string into fields (words)
 	words := strings.Fields(input)
 
-	err := errors.New(customErr.InvalidTagsError.ExternalMessage + "\nExample: \n> " + PREFIX + "find cinema tech sports")
-	
 	for i, word := range words {
-		if word == PREFIX+"find" {
+		if word == BOT_PREFIX+"find" {
 			// Return the slice of words that come after "+help"
 			tags := words[i+1:]
-
+			
 			if len(tags) == 0 {
-				return []string{}, err, true
+				GeneralLogger.Info().Msg( (*InvalidTagsError).LogMessage)
+				return []string{}, InvalidTagsError
 			}
 
-			return tags, nil, true
+			return tags, nil
 		}
 	}
-	// if "+find" is not found, return an empty slice, error and true to signal this error shouldn't stop the program
-	return []string{}, errors.New(customErr.InvalidCommandError.ExternalMessage), true
+	// if "+find" is not found, return an empty slice and an error 
+	GeneralLogger.Info().Msg((*InvalidCommandError).LogMessage)
+	return []string{}, InvalidCommandError
 
 }
 
-//Returns the url, a slice of tags, error if any, and true if it is not a critical error or false if it is a critical error
-func ParseSaveCommand(input string) (string, []string, error, bool){
+//Returns the url, a slice of tags, and an error if any
+func ParseSaveCommand(input string) (string, []string, error){
 
 	words := strings.Fields(input)
 
-	if words[0] != PREFIX+"save"{
-		return "", []string{}, errors.New(customErr.InvalidCommandError.ExternalMessage), true
+	if words[0] != BOT_PREFIX+"save"{
+		GeneralLogger.Info().Msg((*&InvalidCommandError.LogMessage))
+		return "", []string{}, InvalidCommandError
 	}
 
+	//If there is only +save
 	if len(words) == 1 {
-		PREFIX := config.BOT_PREFIX
-		MissingTags := customErr.NewCustomError(customErr.InvalidCommand, "", "You are missing the url and tags! \nExample: \n > "+PREFIX+"save https://example.com/ cinema tech soccer")
-		return "", []string{}, errors.New(MissingTags.ExternalMessage), true
+		GeneralLogger.Info().Msg((*MissingUrlError).LogMessage)
+		return "", []string{}, MissingUrlError
 	}
 	
 	url := words[1]
 	
 	if !isValidURL(url){
-		InvalidUrlError := errors.New(customErr.InvalidUrlError.ExternalMessage)
-		return "", []string{}, InvalidUrlError, true
+		GeneralLogger.Info().Msg((*InvalidCommandError).LogMessage)
+		return "", []string{}, InvalidUrlError
 	}
 
 	//if there's only the command and the url with no additional tags
 	if len(words) == 2 {
-		return "", []string{}, errors.New(customErr.MissingTagsError.ExternalMessage), true
+		GeneralLogger.Info().Msg((*MissingTagsError).LogMessage)
+		return "", []string{}, MissingTagsError
 	}
 
-	return url, words[2:], nil, true
+	return url, words[2:], nil
 
 }
 
@@ -73,6 +74,7 @@ func ParseSaveCommand(input string) (string, []string, error, bool){
 func isValidURL(str string) bool {
 	parsedURL, err := url.Parse(str)
 	if err != nil {
+		GeneralLogger.Debug().Str("string", str).Msg("error when parsing string" + err.Error())
 		return false
 	}
 	return parsedURL.Scheme != "" && parsedURL.Host != ""
