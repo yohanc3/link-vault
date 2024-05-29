@@ -49,6 +49,12 @@ func (b *Bot) Run(){
 	discord.Open()
 	defer discord.Close()
 
+	err = discord.UpdateGameStatus(1, "+help | linkvault.me")
+
+	if err != nil {
+		GeneralLogger.Panic().Str("error", err.Error()).Msg("Error when setting bot's complex status")
+	}
+
 	//Keep running the bot until forced termination (ctrl + c)
 	fmt.Println("Bot running...")
 	c := make(chan os.Signal, 1 )
