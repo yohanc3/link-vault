@@ -49,7 +49,7 @@ func (b *Bot) Run(){
 	discord.Open()
 	defer discord.Close()
 
-	err = discord.UpdateGameStatus(1, "+help | linkvault.me")
+	err = discord.UpdateGameStatus(0, "+help | linkvault.me")
 
 	if err != nil {
 		GeneralLogger.Panic().Str("error", err.Error()).Msg("Error when setting bot's complex status")
