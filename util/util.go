@@ -42,7 +42,7 @@ func ParseSaveCommand(input string) (string, []string, error){
 	words := strings.Fields(input)
 
 	if words[0] != BOT_PREFIX+"save"{
-		GeneralLogger.Info().Msg((*&InvalidCommandError.LogMessage))
+		GeneralLogger.Info().Msg((*InvalidCommandError).LogMessage)
 		return "", []string{}, InvalidCommandError
 	}
 
